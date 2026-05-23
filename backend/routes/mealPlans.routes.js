@@ -33,5 +33,7 @@ router.get('/:id/shopping-list', auth, mealPlanController.getShoppingList);
 router.get('/:id/shopping-list/export', auth, mealPlanController.exportShoppingList);
 // Статистика для дашборда
 router.get('/stats/dashboard', auth, mealPlanController.getStats);
+// Удаление плана
+router.delete('/:id', auth, mealPlanController.deletePlan);
 
 module.exports = router;

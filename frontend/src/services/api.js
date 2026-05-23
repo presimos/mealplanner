@@ -60,6 +60,7 @@ export const mealPlansAPI = {
   generate: (data) => api.post('/meal-plans/generate', data),
   updateMeal: (planId, mealId, data) => api.put(`/meal-plans/${planId}/meals/${mealId}`, data),
   getShoppingList: (id) => api.get(`/meal-plans/${id}/shopping-list`),
+  delete: (id) => api.delete(`/meal-plans/${id}`),
 };
 
 // Users API (admin)

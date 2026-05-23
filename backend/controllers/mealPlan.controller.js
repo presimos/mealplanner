@@ -223,7 +223,7 @@ const mealPlanController = {
       res.status(500).json({ error: 'Ошибка экспорта списка покупок' });
     }
   },
-  
+
   getStats(req, res) {
     try {
       const db = getDB();
@@ -292,8 +292,30 @@ const mealPlanController = {
       console.error('Get stats error:', err);
       res.status(500).json({ error: 'Ошибка получения статистики' });
     }
-  }
+  },
 
+   // Удаление плана питания
+  deletePlan(req, res) {
+    try {
+      const db = getDB();
+      const { id } = req.params;
+
+      // Проверяем, что план принадлежит пользователю
+      const plan = db.prepare('SELECT * FROM meal_plans WHERE id = ? AND user_id = ?').get(id, req.user.id);
+      
+      if (!plan) {
+        return res.status(404).json({ error: 'План не найден' });
+      }
+
+      // Удаляем план (каскадно удалятся plan_meals)
+      db.prepare('DELETE FROM meal_plans WHERE id = ?').run(id);
+
+      res.json({ message: 'План питания удалён' });
+    } catch (err) {
+      console.error('Delete plan error:', err);
+      res.status(500).json({ error: 'Ошибка удаления плана' });
+    }
+  }
 };
 
 module.exports = mealPlanController;
