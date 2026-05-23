@@ -6,6 +6,7 @@ const recipeController = {
     try {
       const db = getDB();
       const { search, category, minCalories, maxCalories, page = 1, limit = 10 } = req.query;
+      console.log('🔍 Запрос getAll:', { search, category, minCalories, maxCalories, page, limit });
       const userId = req.user?.id || 0;
       
       let query = `
@@ -13,9 +14,17 @@ const recipeController = {
         FROM recipes r
         LEFT JOIN categories c ON r.category_id = c.id
         LEFT JOIN users u ON r.author_id = u.id
-        WHERE (r.is_public = 1 AND r.is_approved = 1) OR r.author_id = ?
+        WHERE 1=1
       `;
-      const params = [userId];
+      const params = [];
+
+      // Если неавторизован — только публичные
+      if (!req.user) {
+        query += ` AND r.is_public = 1 AND r.is_approved = 1`;
+      } else {
+        query += ` AND ((r.is_public = 1 AND r.is_approved = 1) OR r.author_id = ?)`;
+        params.push(req.user.id);
+      }
 
       if (search) {
         query += ` AND (r.title LIKE ? OR r.description LIKE ?)`;
@@ -36,7 +45,8 @@ const recipeController = {
 
       const offset = (page - 1) * limit;
       const countQuery = query.replace(/SELECT.*FROM/, 'SELECT COUNT(*) as total FROM');
-      const { total } = db.prepare(countQuery).get(...params);
+      const countResult = db.prepare(countQuery).get(...params);
+      const total = countResult?.total || 0;
       
       query += ` ORDER BY r.created_at DESC LIMIT ? OFFSET ?`;
       params.push(Number(limit), offset);
