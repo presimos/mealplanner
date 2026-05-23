@@ -1,6 +1,6 @@
 // pages/RecipeDetail.jsx - Детальная страница рецепта
 import { useState, useEffect, useContext } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { recipesAPI } from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
 import { formatCalories, formatTime, formatNutrition } from '../utils/formatters';
@@ -25,6 +25,20 @@ export default function RecipeDetail() {
       toast.error('Рецепт не найден');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const navigate = useNavigate();
+
+  const handleDelete = async () => {
+    if (!confirm('Удалить этот рецепт?')) return;
+    
+    try {
+      await recipesAPI.delete(id);
+      toast.success('Рецепт удалён');
+      navigate('/recipes');
+    } catch (err) {
+      toast.error('Ошибка удаления');
     }
   };
 

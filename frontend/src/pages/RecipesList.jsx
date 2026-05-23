@@ -49,6 +49,18 @@ export default function RecipesList() {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!confirm('Удалить этот рецепт?')) return;
+    
+    try {
+      await recipesAPI.delete(id);
+      setRecipes(prev => prev.filter(r => r.id !== id));
+      toast.success('Рецепт удалён');
+    } catch (err) {
+      toast.error('Ошибка удаления');
+    }
+  };
+
   const handleFavorite = async (id) => {
     if (!user) {
       toast.error('Войдите, чтобы добавлять в избранное');
@@ -113,7 +125,9 @@ export default function RecipesList() {
               key={recipe.id} 
               recipe={recipe}
               showFavorite={!!user}
+              showDelete={!!user && user.id === recipe.author_id}
               onFavorite={handleFavorite}
+              onDelete={handleDelete}
             />
           ))}
         </div>
