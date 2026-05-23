@@ -11,6 +11,10 @@ export function MealPlanProvider({ children }) {
   const [shoppingList, setShoppingList] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const clearCurrentPlan = useCallback(() => {
+    setCurrentPlan(null);
+  }, []);
+
   // Загрузка всех планов
   const fetchPlans = useCallback(async () => {
     try {
@@ -76,6 +80,7 @@ export function MealPlanProvider({ children }) {
     fetchPlan,
     generatePlan,
     fetchShoppingList,
+    clearCurrentPlan,
   };
 
   return (

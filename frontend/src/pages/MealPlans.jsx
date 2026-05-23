@@ -9,7 +9,7 @@ import { SHORT_DAYS, formatCalories, formatDate } from '../utils/formatters';
 
 export default function MealPlans() {
   const { user } = useContext(AuthContext);
-  const { plans, currentPlan, loading, fetchPlans, fetchPlan, generatePlan } = useContext(MealPlanContext);
+  const { plans, currentPlan, loading, fetchPlans, fetchPlan, generatePlan, clearCurrentPlan } = useContext(MealPlanContext);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -44,13 +44,13 @@ export default function MealPlans() {
       
       toast.success('План удалён 🗑️');
       
-      // Если удалили текущий план — сбрасываем
-      if (selectedPlanId === planId) {
-        setSelectedPlanId(null);
-      }
+      // Сбросить ВСЁ
+      setSelectedPlanId(null);
+      clearCurrentPlan();  // ← Очистить currentPlan в контексте
       
-      // Обновляем список планов
-      fetchPlans();
+      // Обновить список
+      await fetchPlans();
+      
     } catch (err) {
       toast.error('Ошибка удаления плана');
     } finally {
