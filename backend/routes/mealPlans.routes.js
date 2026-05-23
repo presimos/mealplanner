@@ -31,5 +31,7 @@ router.get('/:id/shopping-list', auth, mealPlanController.getShoppingList);
 
 // Экспорт списка покупок
 router.get('/:id/shopping-list/export', auth, mealPlanController.exportShoppingList);
+// Статистика для дашборда
+router.get('/stats/dashboard', auth, mealPlanController.getStats);
 
 module.exports = router;

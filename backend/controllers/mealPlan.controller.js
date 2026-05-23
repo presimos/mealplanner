@@ -222,7 +222,78 @@ const mealPlanController = {
       console.error('Export shopping list error:', err);
       res.status(500).json({ error: 'Ошибка экспорта списка покупок' });
     }
+  },
+  
+  getStats(req, res) {
+    try {
+      const db = getDB();
+      
+      // Получить последний план пользователя
+      const plan = db.prepare(`
+        SELECT * FROM meal_plans 
+        WHERE user_id = ? 
+        ORDER BY created_at DESC LIMIT 1
+      `).get(req.user.id);
+
+      if (!plan) {
+        // Если плана нет — возвращаем пустые данные
+        return res.json({ 
+          dailyStats: [],
+          totalCalories: 0,
+          avgProteins: 0,
+          avgFats: 0,
+          avgCarbs: 0
+        });
+      }
+
+      // Статистика по дням
+      const dailyStats = db.prepare(`
+        SELECT 
+          pm.day_of_week,
+          SUM(r.calories * pm.servings) as total_calories,
+          SUM(r.proteins * pm.servings) as total_proteins,
+          SUM(r.fats * pm.servings) as total_fats,
+          SUM(r.carbs * pm.servings) as total_carbs
+        FROM plan_meals pm
+        JOIN recipes r ON pm.recipe_id = r.id
+        WHERE pm.plan_id = ?
+        GROUP BY pm.day_of_week
+        ORDER BY pm.day_of_week
+      `).all(plan.id);
+
+      // Общая статистика
+      const totals = db.prepare(`
+        SELECT 
+          SUM(r.calories * pm.servings) as total_calories,
+          ROUND(AVG(r.proteins * pm.servings), 1) as avg_proteins,
+          ROUND(AVG(r.fats * pm.servings), 1) as avg_fats,
+          ROUND(AVG(r.carbs * pm.servings), 1) as avg_carbs
+        FROM plan_meals pm
+        JOIN recipes r ON pm.recipe_id = r.id
+        WHERE pm.plan_id = ?
+      `).get(plan.id);
+
+      res.json({
+        planId: plan.id,
+        planName: plan.name,
+        dailyStats: dailyStats.map(d => ({
+          day: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'][d.day_of_week],
+          calories: d.total_calories,
+          proteins: d.total_proteins,
+          fats: d.total_fats,
+          carbs: d.total_carbs
+        })),
+        totalCalories: totals.total_calories || 0,
+        avgProteins: totals.avg_proteins || 0,
+        avgFats: totals.avg_fats || 0,
+        avgCarbs: totals.avg_carbs || 0
+      });
+    } catch (err) {
+      console.error('Get stats error:', err);
+      res.status(500).json({ error: 'Ошибка получения статистики' });
+    }
   }
+
 };
 
 module.exports = mealPlanController;
