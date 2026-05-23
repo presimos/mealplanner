@@ -6,7 +6,6 @@ const recipeController = {
     try {
       const db = getDB();
       const { search, category, minCalories, maxCalories, page = 1, limit = 10 } = req.query;
-      console.log('🔍 Запрос getAll:', { search, category, minCalories, maxCalories, page, limit });
       const userId = req.user?.id || 0;
       
       let query = `
