@@ -47,22 +47,28 @@ make clean      # Очистить всё
 ---
 
 ## 🔑 Тестовые аккаунты
-Email	Пароль	Роль
-admin@mealplanner.com	admin123	Админ
-anna@example.com	user123	Пользователь
-max@example.com	user123	Пользователь
+
+| Email | Пароль | Роль |
+|-------|--------|------|
+| `admin@mealplanner.com` | `admin123` | 👑 Админ |
+| `anna@example.com` | `user123` | 👤 Пользователь |
+| `max@example.com` | `user123` | 👤 Пользователь |
+| `olga@example.com` | `user123` | 👤 Пользователь |
+| `dima@example.com` | `user123` | 👤 Пользователь |
 
 ---
 
 ## 🔧 Технологии
-Технология	Назначение
-React 18	Фронтенд
-Vite	Сборщик
-Tailwind CSS	Стилизация
-Express.js	Бэкенд API
-SQLite3	База данных
-JWT	Авторизация
-Recharts	Графики
+
+| Технология | Назначение |
+|------------|-----------|
+| React 18 | Фронтенд |
+| Vite | Сборщик |
+| Tailwind CSS | Стилизация |
+| Express.js | Бэкенд API |
+| SQLite3 | База данных |
+| JWT | Авторизация |
+| Recharts | Графики |
 
 ---
 
