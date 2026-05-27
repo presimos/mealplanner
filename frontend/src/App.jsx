@@ -16,6 +16,7 @@ import MealPlans from './pages/MealPlans';
 import ShoppingList from './pages/ShoppingList';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
+import AdminPanel from './pages/AdminPanel';
 
 function App() {
   const { user, loading } = useContext(AuthContext);
@@ -45,6 +46,7 @@ function App() {
           <Route path="/shopping-list/:planId?" element={<PrivateRoute><ShoppingList /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/recipes/add" element={<PrivateRoute><AddRecipe /></PrivateRoute>} />
+          <Route path="/admin" element={<PrivateRoute adminOnly><AdminPanel /></PrivateRoute>} />
           
           {/* Редирект с корня */}
           <Route path="/" element={<Navigate to={user ? "/dashboard" : "/recipes"} />} />

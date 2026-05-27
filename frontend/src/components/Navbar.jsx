@@ -51,7 +51,9 @@ export default function Navbar() {
                   👤 {user.username}
                 </NavLink>
                 {isAdmin && (
-                  <span className="badge badge-orange ml-2">Админ</span>
+                  <NavLink to="/admin" className="px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50">
+                    👑 Админ
+                  </NavLink>
                 )}
                 <button 
                   onClick={handleLogout}
