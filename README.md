@@ -52,9 +52,6 @@ make clean      # Очистить всё
 |-------|--------|------|
 | `admin@mealplanner.com` | `admin123` | 👑 Админ |
 | `anna@example.com` | `user123` | 👤 Пользователь |
-| `max@example.com` | `user123` | 👤 Пользователь |
-| `olga@example.com` | `user123` | 👤 Пользователь |
-| `dima@example.com` | `user123` | 👤 Пользователь |
 
 ---
 
