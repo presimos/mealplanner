@@ -26,6 +26,7 @@ make install
 
 # 4. Запуск
 make dev
+```
 
 Откройте http://localhost:5173
 
