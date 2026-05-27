@@ -81,12 +81,22 @@ export default function AddRecipe() {
           <input
             type="text"
             name="title"
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 outline-none ${
+              form.title && form.title.length < 2 
+                ? 'border-red-400 focus:ring-red-500' 
+                : 'border-gray-300 focus:ring-green-500'
+            }`}
             placeholder="Например: Паста Карбонара"
             value={form.title}
             onChange={handleChange}
             required
           />
+          <div className="flex justify-between mt-1">
+            <p className="text-xs text-gray-400">Минимум 2 символа</p>
+            <p className={`text-xs ${form.title && form.title.length < 2 ? 'text-red-500' : 'text-gray-400'}`}>
+              {form.title.length}/200
+            </p>
+          </div>
         </div>
 
         {/* Описание */}
@@ -112,12 +122,22 @@ export default function AddRecipe() {
           <textarea
             name="instructions"
             rows="5"
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 outline-none ${
+              form.instructions && form.instructions.length < 5 
+                ? 'border-red-400 focus:ring-red-500' 
+                : 'border-gray-300 focus:ring-green-500'
+            }`}
             placeholder="1. Подготовьте ингредиенты.&#10;2. Смешайте...&#10;3. Готовьте 30 минут..."
             value={form.instructions}
             onChange={handleChange}
             required
           ></textarea>
+          <div className="flex justify-between mt-1">
+            <p className="text-xs text-gray-400">Минимум 5 символов</p>
+            <p className={`text-xs ${form.instructions && form.instructions.length < 5 ? 'text-red-500' : 'text-gray-400'}`}>
+              {form.instructions.length} симв.
+            </p>
+          </div>
         </div>
 
         {/* Время и порции */}
