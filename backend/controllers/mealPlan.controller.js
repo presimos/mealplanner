@@ -73,62 +73,144 @@ const mealPlanController = {
   generate(req, res) {
     try {
       const db = getDB();
-      const { days = 7, calories_per_day } = req.params;
+      const { days = 7, calories_per_day } = req.body;
       
-      // Получение параметров пользователя
       const user = db.prepare('SELECT daily_calories, goal FROM users WHERE id = ?').get(req.user.id);
-      const targetCalories = calories_per_day || user.daily_calories || 2000;
+      
+      let targetCalories = calories_per_day || user?.daily_calories || 2000;
+      
+      if (user?.goal === 'gain' && !calories_per_day) {
+        targetCalories += 500;
+      }
+      
+      if (user?.goal === 'lose' && !calories_per_day) {
+        targetCalories -= 500;
+      }
+      
+      targetCalories = Math.max(1200, Math.min(5000, targetCalories));
 
-      // Создание плана
       const startDate = new Date().toISOString().split('T')[0];
       const endDate = new Date(Date.now() + (days - 1) * 86400000).toISOString().split('T')[0];
 
       const plan = db.prepare(`
         INSERT INTO meal_plans (user_id, name, start_date, end_date, total_calories)
         VALUES (?, ?, ?, ?, ?)
-      `).run(req.user.id, `План на ${days} дн.`, startDate, endDate, targetCalories * days);
+      `).run(req.user.id, `План на ${days} дн.`, startDate, endDate, 0);
 
-      // Распределение калорий
-      const mealDistribution = { breakfast: 0.25, lunch: 0.35, dinner: 0.30, snack: 0.10 };
-      
-      // Получение одобренных рецептов
-      const recipes = db.prepare(`
-        SELECT * FROM recipes WHERE is_approved = 1 AND is_public = 1 ORDER BY RANDOM()
-      `).all();
+      const allRecipes = db.prepare(`
+        SELECT * FROM recipes 
+        WHERE (is_approved = 1 AND is_public = 1) OR author_id = ?
+      `).all(req.user.id);
 
-      if (recipes.length === 0) {
-        return res.status(400).json({ error: 'Нет доступных рецептов' });
+      if (allRecipes.length < 4) {
+        return res.status(400).json({ error: 'Недостаточно рецептов (минимум 4)' });
       }
+
+      const mealRules = [
+        { type: 'breakfast', targetPercent: 0.25, categoryIds: [1], fallbackIds: [] },
+        { type: 'lunch', targetPercent: 0.35, categoryIds: [2, 3], fallbackIds: [4] },
+        { type: 'dinner', targetPercent: 0.30, categoryIds: [4, 5], fallbackIds: [] },
+        { type: 'snack', targetPercent: 0.10, categoryIds: [6, 7], fallbackIds: [1] }
+      ];
 
       const insertMeal = db.prepare(`
         INSERT INTO plan_meals (plan_id, recipe_id, day_of_week, meal_type, servings)
         VALUES (?, ?, ?, ?, ?)
       `);
 
-      // Заполнение плана
       for (let day = 0; day < days; day++) {
-        const shuffled = [...recipes].sort(() => Math.random() - 0.5);
-        let recipeIndex = 0;
-
-        for (const [mealType, proportion] of Object.entries(mealDistribution)) {
-          const targetMealCalories = targetCalories * proportion;
+        let usedToday = [];
+        let dayCalories = 0;
+        
+        for (const rule of mealRules) {
+          const targetMealCalories = targetCalories * rule.targetPercent;
           
-          // Поиск подходящего рецепта
-          let bestRecipe = shuffled[recipeIndex % shuffled.length];
+          let pool = allRecipes.filter(r => rule.categoryIds.includes(r.category_id));
+          if (pool.length === 0 && rule.fallbackIds.length > 0) {
+            pool = allRecipes.filter(r => rule.fallbackIds.includes(r.category_id));
+          }
+          if (pool.length === 0) pool = allRecipes;
+
+          const shuffled = [...pool].sort(() => Math.random() - 0.5);
+          const candidates = [];
+          
           for (const recipe of shuffled) {
-            if (Math.abs(recipe.calories - targetMealCalories) < Math.abs(bestRecipe.calories - targetMealCalories)) {
-              bestRecipe = recipe;
+            if (usedToday.includes(recipe.id)) continue;
+            const diff = Math.abs(recipe.calories - targetMealCalories);
+            if (diff < targetMealCalories * 0.4) {
+              candidates.push({ recipe, diff });
             }
           }
           
-          insertMeal.run(plan.lastInsertRowid, bestRecipe.id, day, mealType, 1);
-          recipeIndex++;
+          candidates.sort((a, b) => a.diff - b.diff);
+          const topN = candidates.slice(0, Math.min(3, candidates.length));
+          let bestRecipe = null;
+          
+          if (topN.length > 0) {
+            const randomIndex = Math.floor(Math.random() * topN.length);
+            bestRecipe = topN[randomIndex].recipe;
+          }
+          
+          if (!bestRecipe) {
+            bestRecipe = shuffled.find(r => !usedToday.includes(r.id)) || shuffled[0];
+          }
+          
+          if (bestRecipe) {
+            usedToday.push(bestRecipe.id);
+            
+            let servings = 1;
+            if (bestRecipe.calories < targetMealCalories * 0.5) {
+              servings = Math.min(3, Math.max(1, Math.round(targetMealCalories / bestRecipe.calories)));
+            }
+            
+            insertMeal.run(plan.lastInsertRowid, bestRecipe.id, day, rule.type, servings);
+            dayCalories += bestRecipe.calories * servings;
+          }
+        }
+        
+        // Добивка 1: если меньше 80% нормы
+        if (dayCalories < targetCalories * 0.8) {
+          const needed = targetCalories - dayCalories;
+          const extraPool = [...allRecipes].sort(() => Math.random() - 0.5);
+          const extraRecipe = extraPool.find(r => !usedToday.includes(r.id));
+          
+          if (extraRecipe) {
+            const extraServings = Math.min(4, Math.max(1, Math.round(needed / extraRecipe.calories)));
+            insertMeal.run(plan.lastInsertRowid, extraRecipe.id, day, 'snack', extraServings);
+            dayCalories += extraRecipe.calories * extraServings;
+            usedToday.push(extraRecipe.id);
+          }
+        }
+        
+        // Добивка 2: если всё ещё меньше 90% нормы
+        if (dayCalories < targetCalories * 0.9) {
+          const needed = targetCalories - dayCalories;
+          const extraPool = [...allRecipes].sort(() => Math.random() - 0.5);
+          const extraRecipe = extraPool.find(r => !usedToday.includes(r.id));
+          
+          if (extraRecipe) {
+            const extraServings = Math.min(4, Math.max(1, Math.round(needed / extraRecipe.calories)));
+            insertMeal.run(plan.lastInsertRowid, extraRecipe.id, day, 'snack', extraServings);
+          }
         }
       }
 
+      const totalCalories = db.prepare(`
+        SELECT COALESCE(SUM(r.calories * pm.servings), 0) as total
+        FROM plan_meals pm
+        JOIN recipes r ON pm.recipe_id = r.id
+        WHERE pm.plan_id = ?
+      `).get(plan.lastInsertRowid);
+      
+      const avgPerDay = Math.round(totalCalories.total / days);
+
+      db.prepare('UPDATE meal_plans SET total_calories = ?, name = ? WHERE id = ?')
+        .run(totalCalories.total, `План на ${days} дн. (~${avgPerDay} ккал/день)`, plan.lastInsertRowid);
+
       res.status(201).json({
-        message: 'План питания сгенерирован',
-        plan_id: plan.lastInsertRowid
+        message: `План сгенерирован! ~${avgPerDay} ккал/день`,
+        plan_id: plan.lastInsertRowid,
+        daily_target: avgPerDay
       });
     } catch (err) {
       console.error('Generate meal plan error:', err);

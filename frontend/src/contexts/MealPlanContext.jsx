@@ -48,7 +48,7 @@ export function MealPlanProvider({ children }) {
     try {
       setLoading(true);
       const res = await mealPlansAPI.generate(data);
-      toast.success('План питания сгенерирован! 🎉');
+      toast.success(`План сгенерирован! 🎯 Норма: ${res.data.daily_target || '~'} ккал/день`);
       await fetchPlans();
       return res.data;
     } catch (err) {

@@ -24,7 +24,12 @@ export default function MealPlans() {
   }, [selectedPlanId, fetchPlan]);
 
   const handleGenerate = async () => {
-    const result = await generatePlan({ days: 7, calories_per_day: user?.daily_calories || 2000 });
+    console.log('🔄 Генерация плана...', new Date().toISOString());
+    const result = await generatePlan({ 
+      days: 7, 
+      calories_per_day: user?.daily_calories || 2000
+    });
+    console.log('✅ Результат:', result);
     if (result?.plan_id) {
       setSelectedPlanId(result.plan_id);
     }
@@ -75,13 +80,16 @@ export default function MealPlans() {
             {plans.map(plan => (
               <div key={plan.id} className="flex items-center gap-1">
                 <button
-                  onClick={() => setSelectedPlanId(plan.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedPlanId === plan.id
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                  }`}
-                >
+                onClick={() => {
+                  setSelectedPlanId(plan.id);
+                  fetchPlan(plan.id);
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedPlanId === plan.id
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+              >
                   {plan.name}
                   <span className="ml-2 text-xs opacity-70">{formatCalories(plan.total_calories || 0)}</span>
                 </button>
